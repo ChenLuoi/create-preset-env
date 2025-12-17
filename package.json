@@ -1,0 +1,43 @@
+{
+  "name": "create-preset-env",
+  "version": "0.1.5",
+  "description": "A tool to help create env file",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://github.com/ChenLuoi/create-preset-env#readme",
+  "bugs": {
+    "url": "https://github.com/ChenLuoi/create-preset-env/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/ChenLuoi/create-preset-env.git"
+  },
+  "author": "Author Name <author.name@mail.com>",
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "create-preset-env": "./dist/index.mjs"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "bumpp": "^10.3.1",
+    "tsdown": "^0.16.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.9"
+  }
+}
