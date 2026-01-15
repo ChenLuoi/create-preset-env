@@ -41,7 +41,7 @@ describe("processRawConfigs", () => {
 		const result = processRawConfigs(configs, cwd);
 		expect(result?.variables).toEqual([
 			{ key: "VAR1", value: "value1" },
-			{ key: "VAR2", value: "value2", description: "A description" }
+			{ key: "VAR2", value: "value2", description: ["A description"] }
 		]);
 	});
 
@@ -68,7 +68,7 @@ describe("processRawConfigs", () => {
 		const result = processRawConfigs(configs, cwd);
 		expect(result?.variables).toEqual([
 			{ key: "VAR_NUM", value: "123" },
-			{ key: "VAR_BOOL", value: "true", description: "boolean" }
+			{ key: "VAR_BOOL", value: "true", description: ["boolean"] }
 		]);
 	});
 });
@@ -87,7 +87,7 @@ describe("parseEnvFileContent", () => {
 		const content = `# Comment\nVAR1=value1\n\nVAR2=value2`;
 		const result = parseEnvFileContent(content);
 		expect(result).toEqual([
-			{ key: "VAR1", value: "value1", description: "Comment" },
+			{ key: "VAR1", value: "value1", description: ["Comment"] },
 			{ key: "VAR2", value: "value2" }
 		]);
 	});
@@ -96,7 +96,7 @@ describe("parseEnvFileContent", () => {
 		const content = `# Line 1\n# Line 2\nVAR1=value1`;
 		const result = parseEnvFileContent(content);
 		expect(result).toEqual([
-			{ key: "VAR1", value: "value1", description: "Line 1\nLine 2" }
+			{ key: "VAR1", value: "value1", description: ["Line 1", "Line 2"] }
 		]);
 	});
 
@@ -114,7 +114,7 @@ describe("parseEnvFileContent", () => {
 		const result = parseEnvFileContent(content);
 		expect(result).toEqual([
 			"invalid-line",
-			{ key: "VAR1", value: "value1", description: "comment" }
+			{ key: "VAR1", value: "value1", description: ["comment"] }
 		]);
 	});
 
@@ -161,12 +161,12 @@ describe("generateEnvContent", () => {
 				{
 					key: "VAR1",
 					value: "new_value",
-					description: "New description"
+					description: ["New description"]
 				}
 			]
 		};
 		const currentEnv = [
-			{ key: "VAR1", value: "old_value", description: "Old description" }
+			{ key: "VAR1", value: "old_value", description: ["Old description"] }
 		];
 		const result = generateEnvContent(envConfig, currentEnv);
 		expect(result).toContain("# New description\nVAR1=old_value");
@@ -180,12 +180,12 @@ describe("generateEnvContent", () => {
 				{
 					key: "VAR1",
 					value: "new_value",
-					description: "New description"
+					description: ["New description"]
 				}
 			]
 		};
 		const currentEnv = [
-			{ key: "VAR1", value: "old_value", description: "Old description" }
+			{ key: "VAR1", value: "old_value", description: ["Old description"] }
 		];
 		const result = generateEnvContent(envConfig, currentEnv);
 		expect(result).toContain("# Old description\nVAR1=old_value");
@@ -206,6 +206,31 @@ describe("generateEnvContent", () => {
 		expect(result).toContain('VAR2="value with\\nnewline"');
 	});
 
+	test("should preserve extra comment lines when overriding description", () => {
+		const envConfig = {
+			target: ".env",
+			overrideDescription: true,
+			variables: [
+				{
+					key: "VAR1",
+					value: "new_value",
+					description: ["New description"]
+				}
+			]
+		};
+		const currentEnv = [
+			{
+				key: "VAR1",
+				value: "old_value",
+				description: ["Line 1", "Line 2", "Old description"]
+			}
+		];
+		const result = generateEnvContent(envConfig, currentEnv);
+		expect(result).toContain(
+			"# Line 1\n# Line 2\n# New description\nVAR1=old_value"
+		);
+	});
+
 	test("should preserve other lines and variables with descriptions", () => {
 		const envConfig = {
 			target: ".env",
@@ -213,7 +238,7 @@ describe("generateEnvContent", () => {
 			variables: [{ key: "VAR2", value: "value2" }]
 		};
 		const currentEnv = [
-			{ key: "VAR1", value: "value1", description: "A comment" },
+			{ key: "VAR1", value: "value1", description: ["A comment"] },
 			"some other line"
 		];
 		const result = generateEnvContent(envConfig, currentEnv);
