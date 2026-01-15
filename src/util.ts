@@ -19,7 +19,7 @@ function log(...args: any[]) {
 interface EnvVariable {
 	key: string;
 	value: string;
-	description?: string;
+	description?: string[];
 }
 
 interface EnvConfig {
@@ -35,7 +35,7 @@ interface RawEnvVariableObject {
 
 type DefineEnvVariables =
 	| Record<string, string | RawEnvVariableObject>
-	| EnvVariable[];
+	| (EnvVariable | { key: string; value: any; description?: string })[];
 
 export interface RawEnvConfig {
 	target?: string;
@@ -166,10 +166,17 @@ export function transformEnvVariables(
 	variables: DefineEnvVariables
 ): EnvVariable[] {
 	if (Array.isArray(variables)) {
-		return variables.map((variable) => ({
-			...variable,
-			value: String(variable.value)
-		}));
+		return variables.map((variable) => {
+			const description = variable.description;
+			return {
+				...variable,
+				value: String(variable.value),
+				description:
+					typeof description === "string"
+						? description.split("\n")
+						: description
+			};
+		});
 	}
 	if (typeof variables === "object") {
 		return Object.entries(variables).map(([key, value]) => {
@@ -180,6 +187,8 @@ export function transformEnvVariables(
 				key,
 				value: String(value.value),
 				description: value.description
+					? value.description.split("\n")
+					: undefined
 			};
 		});
 	}
@@ -208,10 +217,25 @@ export function generateEnvContent(
 		}
 
 		const configVariable = variablesMap.get(item.key);
-		if (configVariable && envConfig.overrideDescription) {
+		if (
+			configVariable &&
+			envConfig.overrideDescription &&
+			configVariable.description
+		) {
+			const newDesc = configVariable.description;
+			const currentDesc = item.description || [];
+
+			let finalDesc: string[];
+			if (currentDesc.length > newDesc.length) {
+				const keepCount = currentDesc.length - newDesc.length;
+				finalDesc = [...currentDesc.slice(0, keepCount), ...newDesc];
+			} else {
+				finalDesc = newDesc;
+			}
+
 			return {
 				...item,
-				description: configVariable.description
+				description: finalDesc
 			};
 		}
 		return item;
@@ -230,10 +254,7 @@ export function generateEnvContent(
 					return item;
 				}
 				const description = item.description
-					? item.description
-							.split("\n")
-							.map((line) => `# ${line}`)
-							.join("\n")
+					? item.description.map((line) => `# ${line}`).join("\n")
 					: "";
 				return `${description ? `${description}\n` : ""}${item.key}=${
 					/"|\n/.test(item.value) ? JSON.stringify(item.value) : item.value
@@ -281,7 +302,7 @@ export function parseEnvFileContent(fileContent: string): ParsedEnvItem[] {
 				}
 				const config: EnvVariable = { key, value };
 				if (commentBuffer.length > 0) {
-					config.description = commentBuffer.join("\n");
+					config.description = [...commentBuffer];
 				}
 				result.push(config);
 				commentBuffer = [];
