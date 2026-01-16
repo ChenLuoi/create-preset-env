@@ -1,0 +1,50 @@
+name: "1. Create Release PR"
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Choose version type (patch, minor, major)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Update Version
+        id: bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          NEW_VERSION=$(npm version ${{ github.event.inputs.version_type }} --no-git-tag-version)
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: release ${{ steps.bump.outputs.version }}"
+          branch: "release/${{ steps.bump.outputs.version }}"
+          title: "chore: release ${{ steps.bump.outputs.version }}"
+          body: |
+            This PR was automatically generated for the next release.
+            When merged, it will trigger the NPM publication and GitHub Release.
+            
+            - Version: **${{ steps.bump.outputs.version }}**
